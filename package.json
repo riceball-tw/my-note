@@ -15,6 +15,7 @@
     "@nuxt/eslint": "0.7.4",
     "@nuxtjs/color-mode": "3.5.2",
     "@vueuse/core": "^12.2.0",
+    "bcryptjs": "^2.4.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dotenv": "^16.4.7",
