@@ -5,6 +5,7 @@ import type { QueryError } from 'mysql2'
 import { usersInsertRequestSchema } from '@/src/db/schema';
 import { readValidatedBody } from "h3";
 import { fromError } from 'zod-validation-error';
+import jwt from 'jsonwebtoken'
 
 export default defineEventHandler(async (event) => {
   const validationResult = await readValidatedBody(event, body => usersInsertRequestSchema.safeParse(body))
@@ -26,7 +27,9 @@ export default defineEventHandler(async (event) => {
       password: passwordHash,
       salt: salt,
     }
-    await db.insert(usersTable).values(newUser)
+    const newUserId = await db.insert(usersTable).values(newUser).$returningId()
+    const userJwtToken = jwt.sign({ id: newUserId }, process.env.JWT_SECRET)
+    setCookie(event, 'userJwtToken', userJwtToken)
     setResponseStatus(event, 201)
   } catch(err) {
     if ((err as QueryError).code === 'ER_DUP_ENTRY') {
