@@ -28,7 +28,7 @@ export default defineEventHandler(async (event) => {
       salt: salt,
     }
     const newUserId = await db.insert(usersTable).values(newUser).$returningId()
-    const userJwtToken = jwt.sign({ id: newUserId }, process.env.JWT_SECRET)
+    const userJwtToken = jwt.sign({ id: newUserId }, process.env.JWT_SECRET as string)
     setCookie(event, 'userJwtToken', userJwtToken)
     setResponseStatus(event, 201)
   } catch(err) {
