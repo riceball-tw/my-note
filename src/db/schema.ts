@@ -1,12 +1,32 @@
-import { mysqlTable, serial, varchar } from 'drizzle-orm/mysql-core';
+import { mysqlTable, serial, text, varchar, timestamp, int } from 'drizzle-orm/mysql-core';
 import { createInsertSchema } from 'drizzle-zod';
+import { relations } from 'drizzle-orm';
 
-export const usersTable = mysqlTable('user', {
-  id: serial().primaryKey(),
+export const usersTable = mysqlTable('users', {
+  id: int().autoincrement().primaryKey(),
   email: varchar({ length: 255 }).notNull().unique(),
   password: varchar('password', { length: 255 }).notNull(),
   salt: varchar({length: 255}).notNull()
 });
+
+export const notesTable = mysqlTable('notes', {
+  id: serial().primaryKey(),
+  userId: int().notNull().references(() => usersTable.id),
+  text: text(),
+  createdAt: timestamp({ mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp({ mode: 'date' }).defaultNow().onUpdateNow().notNull(),
+})
+
+export const userRelations = relations(usersTable, ({ many }) => ({
+  notes: many(notesTable),
+}));
+
+export const noteRelations = relations(notesTable, ({ one }) => ({
+  user: one(usersTable, {
+    fields: [notesTable.userId],
+    references: [usersTable.id],
+  }),
+}));
 
 // drizzle-zod: https://github.com/drizzle-team/drizzle-orm/blob/main/drizzle-zod/README.md
 const usersInsertSchema = createInsertSchema(usersTable, {
