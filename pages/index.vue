@@ -137,6 +137,19 @@
     navigateTo('/signin')
   }
 
+  function handleDeleteNote() {
+    if (!currentNoteId.value) return
+    try {
+      $fetch(`/api/notes/${currentNoteId.value}`, {
+        method: 'DELETE'
+      })
+      notes.value = notes.value?.filter(note => note.id !== currentNoteId.value)
+      currentNoteId.value = null
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
 </script>
 
 
@@ -297,8 +310,11 @@
               Last Updated: {{ new Date(currentNote.updatedAt).toLocaleDateString() }}
             </time>
             <textarea ref="noteTextarea" v-model="updatedNoteText" @input="handleDebouncedUpdateNote" class="w-full h-full focus:outline-none resize-none">{{ currentNote.text }}</textarea>
-          </div>  
+          </div>
         </div>
+        <Button :disabled="!currentNoteId" variant="destructive" @click="handleDeleteNote">
+          Delete Note
+        </Button>  
       </main>
     </div>
   </div>
