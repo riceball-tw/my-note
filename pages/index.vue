@@ -73,8 +73,6 @@
           </Button>
         </div>
  
-        <NoteListItem></NoteListItem>
-
         <!-- Notes -->
         <div v-if="notesStatus === 'success'">
           <div class="flex justify-between px-4 py-2 text-sm font-semibold">
@@ -82,16 +80,7 @@
             <Badge variant="outline">{{ notesGroupByCategory['today']?.length ?? 0 }}</Badge>
           </div>
           <ol v-for="note in notesGroupByCategory['today']" :key="note.id">
-            <li>
-              <button @click="() => handleChangeCurrentNoteId(note.id)" :disabled="note.id === currentNoteId" :class="note.id === currentNoteId ? 'bg-primary' : 'hover:bg-primary/60'" class=" p-4 flex w-full gap-2 flex-col items-start" type="button">
-                {{ note.text }}
-                <span class="text-xs text-muted-foreground">
-                  {{ new Date(note.updatedAt).toDateString() === new Date().toDateString()
-                  ? 'Today' 
-                  : new Date(note.updatedAt).toLocaleDateString() }}
-                </span>
-              </button>
-            </li>
+            <NoteListItem :noteId="note.id" :isActive="note.id === currentNoteId" :title="note.text" subTitle="Today" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"></NoteListItem>
           </ol>
 
           <div class="flex justify-between px-4 py-2 text-sm font-semibold">
@@ -99,16 +88,7 @@
             <Badge variant="outline">{{ notesGroupByCategory['yesterday']?.length ?? 0 }}</Badge>
           </div>
           <ol v-for="note in notesGroupByCategory['yesterday']" :key="note.id">
-            <li>
-              <button @click="() => handleChangeCurrentNoteId(note.id)" :disabled="note.id === currentNoteId" :class="note.id === currentNoteId ? 'bg-primary' : 'hover:bg-primary/60'" class=" p-4 flex w-full gap-2 flex-col items-start" type="button">
-                {{ note.text }}
-                <span class="text-xs text-muted-foreground">
-                  {{ new Date(note.updatedAt).toDateString() === new Date().toDateString()
-                  ? 'Today' 
-                  : new Date(note.updatedAt).toLocaleDateString() }}
-                </span>
-              </button>
-            </li>
+            <NoteListItem :noteId="note.id" :isActive="note.id === currentNoteId" :title="note.text" subTitle="Yesterday" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"></NoteListItem>
           </ol>
           
           <div class="flex justify-between px-4 py-2 text-sm font-semibold">
@@ -116,16 +96,7 @@
             <Badge variant="outline">{{ notesGroupByCategory['earlier']?.length ?? 0 }}</Badge>
           </div>
           <ol v-for="note in notesGroupByCategory['earlier']" :key="note.id">
-            <li>
-              <button @click="() => handleChangeCurrentNoteId(note.id)" :disabled="note.id === currentNoteId" :class="note.id === currentNoteId ? 'bg-primary' : 'hover:bg-primary/60'" class=" p-4 flex w-full gap-2 flex-col items-start" type="button">
-                {{ note.text }}
-                <span class="text-xs text-muted-foreground">
-                  {{ new Date(note.updatedAt).toDateString() === new Date().toDateString()
-                  ? 'Today' 
-                  : new Date(note.updatedAt).toLocaleDateString() }}
-                </span>
-              </button>
-            </li>
+            <NoteListItem :noteId="note.id" :isActive="note.id === currentNoteId" :title="note.text" :subTitle="new Date(note.updatedAt).toLocaleDateString()" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"></NoteListItem>
           </ol>
           
         </div>
@@ -137,7 +108,6 @@
               </li>
             </ol>
           </div>
-
       </div>
     </div>
     <div class="flex flex-col">
