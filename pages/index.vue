@@ -1,4 +1,5 @@
 <script setup lang="ts">
+  import { useDebounceFn } from '@vueuse/core';
   import { Plus, CircleUser, Home, Menu, ScrollText, Search } from 'lucide-vue-next'
 
   definePageMeta({
@@ -20,6 +21,7 @@
     }
   })
   const currentNoteId = ref<null | number>(null)
+  const updatedNoteText = ref<string>('')
   const currentNote = computed(() => {
     if (!currentNoteId.value) return null
     return notes?.value?.find(note => note.id === currentNoteId.value)
@@ -54,6 +56,42 @@
     currentNoteId.value = id
   }
 
+  async function updateNoteText() {
+    try {
+      await $fetch(`/api/notes/${currentNoteId.value}`, {
+        method: 'PATCH',
+        body: {
+          updatedNoteText: updatedNoteText.value
+        }
+      })
+    } catch(err) {
+      console.error(err)
+    }
+  }
+
+  function updateCurrentNoteTextToNotes() {
+    if (!notes.value) return
+    notes.value = notes.value.map(note => {
+      if (note.id === currentNoteId.value) {
+        return {
+          ...note,
+          text: updatedNoteText.value
+        }
+      }
+      return note
+    })
+  }
+
+  const handleDebouncedUpdateNote = useDebounceFn(async () => {
+    await updateNoteText()
+    updateCurrentNoteTextToNotes()
+  }, 1000)
+
+  watchEffect(() => {
+    if (currentNote.value) {
+      updatedNoteText.value = currentNote.value.text
+    }
+  })
 </script>
 
 
@@ -179,12 +217,12 @@
               Click on a note to view or edit it.
             </p>
           </div>
-          <div v-else>
-            {{ new Date(currentNote.updatedAt).toLocaleDateString() }}
+          <div v-else style="max-width: 75ch" class="flex flex-col h-full">
+            <time class="mb-8 inline-block">
+              Last Updated: {{ new Date(currentNote.updatedAt).toLocaleDateString() }}
+            </time>
+            <textarea v-model="updatedNoteText" @input="handleDebouncedUpdateNote" class="w-full h-full focus:outline-none resize-none">{{ currentNote.text }}</textarea>
           </div>  
-          <div>
-            {{ currentNote?.text }}
-          </div>
         </div>
       </main>
     </div>
