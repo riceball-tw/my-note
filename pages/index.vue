@@ -42,6 +42,7 @@
     }
 
     if (!notes?.value?.length) return defaultNotes
+
     const groupedNotes = notes.value.reduce((acc: NotesGroupByCategory, note) => {
       const { category } = note;
       if (!acc[category]) acc[category] = [];
@@ -49,7 +50,16 @@
       return acc;
     }, defaultNotes);
 
-    return groupedNotes;
+
+    const sortedGroupedNotes = Object.fromEntries(
+      Object.entries(groupedNotes).map(([category, notes]: [string, Notes]) => [
+      category,
+      notes!.slice().sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+      ])
+    )
+
+
+    return sortedGroupedNotes;
   })
 
   function handleChangeCurrentNoteId(id: number) {
@@ -92,6 +102,23 @@
       updatedNoteText.value = currentNote.value.text
     }
   })
+
+  async function handleCreateNote() {
+    if (!notes.value) return
+
+    try {
+      const newNote = await $fetch(`/api/notes`, {
+        method: 'POST',
+        body: {
+          updatedNoteText: updatedNoteText.value
+        }
+      })
+      notes.value = [...notes.value, {...newNote, category: 'today'}]
+      currentNoteId.value = newNote.id
+    } catch(err) {
+      console.error(err)
+    }
+  }
 </script>
 
 
@@ -104,10 +131,9 @@
             <ScrollText class="h-6 w-6" />
             <span class="">MyNote</span>
           </a>
-
-          <Button variant="outline" size="icon" class="ml-auto h-8 w-8">
+          <Button @click="handleCreateNote" variant="outline" size="icon" class="ml-auto h-8 w-8">
             <Plus class="h-4 w-4" />
-            <span class="sr-only">Toggle notifications</span>
+            <span class="sr-only">Create Note</span>
           </Button>
         </div>
  
