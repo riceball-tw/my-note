@@ -150,8 +150,8 @@
             <span class="">MyNote</span>
           </a>
           <Button v-if="createNoteStatus === 'pending'" @click="handleCreateNote" variant="outline" size="icon" class="ml-auto h-8 w-8">
-            <Loader2 class="w-4 h-4 mr-2 animate-spin" />
-            <span class="sr-only">Create Note</span>
+            <Loader2 class="w-4 h-4 animate-spin" />
+            <span class="sr-only" aria-live="polite">Creating Note</span>
           </Button>
           <Button v-else @click="handleCreateNote" variant="outline" size="icon" class="ml-auto h-8 w-8">
             <Plus class="h-4 w-4" />
