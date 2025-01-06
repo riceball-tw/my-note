@@ -16,7 +16,13 @@
 <template>
   <li>
     <button :disabled="isActive" :class="isActive ? 'bg-primary' : 'hover:bg-primary/60'" class=" p-4 flex w-full gap-2 flex-col items-start" type="button" @click="() => emit('change-current-note-id', noteId)">
-      {{ title }}
+      <div v-if="title">
+        {{ title }}
+      </div>
+      <div v-else>
+        Untitled
+      </div>
+
       <span class="text-xs text-muted-foreground">
         {{ subTitle }}
       </span>

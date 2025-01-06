@@ -22,7 +22,7 @@
     }
   })
   const currentNoteId = ref<null | number>(null)
-  const updatedNoteText = ref<string>('')
+  const updatedNoteText = ref<string | null>('')
   const currentNote = computed(() => {
     if (!currentNoteId.value) return null
     return notes?.value?.find(note => note.id === currentNoteId.value)
@@ -166,7 +166,7 @@
             <Badge variant="outline">{{ notesGroupByCategory['today']?.length ?? 0 }}</Badge>
           </div>
           <ol v-for="note in notesGroupByCategory['today']" :key="note.id">
-            <NoteListItem :noteId="note.id" :isActive="note.id === currentNoteId" :title="note.text" subTitle="Today" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"></NoteListItem>
+            <NoteListItem :noteId="note.id" :isActive="note.id === currentNoteId" :title="note.text ?? ''" subTitle="Today" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"></NoteListItem>
           </ol>
 
           <div class="flex justify-between px-4 py-2 text-sm font-semibold">
@@ -174,7 +174,7 @@
             <Badge variant="outline">{{ notesGroupByCategory['yesterday']?.length ?? 0 }}</Badge>
           </div>
           <ol v-for="note in notesGroupByCategory['yesterday']" :key="note.id">
-            <NoteListItem :noteId="note.id" :isActive="note.id === currentNoteId" :title="note.text" subTitle="Yesterday" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"></NoteListItem>
+            <NoteListItem :noteId="note.id" :isActive="note.id === currentNoteId" :title="note.text ?? ''" subTitle="Yesterday" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"></NoteListItem>
           </ol>
           
           <div class="flex justify-between px-4 py-2 text-sm font-semibold">
@@ -182,7 +182,7 @@
             <Badge variant="outline">{{ notesGroupByCategory['earlier']?.length ?? 0 }}</Badge>
           </div>
           <ol v-for="note in notesGroupByCategory['earlier']" :key="note.id">
-            <NoteListItem :noteId="note.id" :isActive="note.id === currentNoteId" :title="note.text" :subTitle="new Date(note.updatedAt).toLocaleDateString()" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"></NoteListItem>
+            <NoteListItem :noteId="note.id" :isActive="note.id === currentNoteId" :title="note.text ?? ''" :subTitle="new Date(note.updatedAt).toLocaleDateString()" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"></NoteListItem>
           </ol>
           
         </div>
