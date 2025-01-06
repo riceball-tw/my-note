@@ -1,6 +1,7 @@
 <script setup lang="ts">
   import { useDebounceFn } from '@vueuse/core';
-  import { Plus, CircleUser, Home, Menu, ScrollText, Search } from 'lucide-vue-next'
+  import { Plus, CircleUser, Home, Menu, ScrollText, Search, Loader2 } from 'lucide-vue-next'
+  import type { AsyncDataRequestStatus } from "#app";
 
   definePageMeta({
     middleware: ['auth']
@@ -103,10 +104,14 @@
     }
   })
 
+  const noteTextarea = ref<HTMLTextAreaElement | null>(null)
+  const createNoteStatus = ref<AsyncDataRequestStatus>('idle')
+
   async function handleCreateNote() {
     if (!notes.value) return
 
     try {
+      createNoteStatus.value = 'pending'
       const newNote = await $fetch(`/api/notes`, {
         method: 'POST',
         body: {
@@ -115,8 +120,14 @@
       })
       notes.value = [...notes.value, {...newNote, category: 'today'}]
       currentNoteId.value = newNote.id
+      if (noteTextarea.value) {
+        noteTextarea.value.focus()
+      }
+
     } catch(err) {
       console.error(err)
+    } finally {
+      createNoteStatus.value = 'idle'
     }
   }
 </script>
@@ -131,7 +142,11 @@
             <ScrollText class="h-6 w-6" />
             <span class="">MyNote</span>
           </a>
-          <Button @click="handleCreateNote" variant="outline" size="icon" class="ml-auto h-8 w-8">
+          <Button v-if="createNoteStatus === 'pending'" @click="handleCreateNote" variant="outline" size="icon" class="ml-auto h-8 w-8">
+            <Loader2 class="w-4 h-4 mr-2 animate-spin" />
+            <span class="sr-only">Create Note</span>
+          </Button>
+          <Button v-else @click="handleCreateNote" variant="outline" size="icon" class="ml-auto h-8 w-8">
             <Plus class="h-4 w-4" />
             <span class="sr-only">Create Note</span>
           </Button>
@@ -247,7 +262,7 @@
             <time class="mb-8 inline-block">
               Last Updated: {{ new Date(currentNote.updatedAt).toLocaleDateString() }}
             </time>
-            <textarea v-model="updatedNoteText" @input="handleDebouncedUpdateNote" class="w-full h-full focus:outline-none resize-none">{{ currentNote.text }}</textarea>
+            <textarea ref="noteTextarea" v-model="updatedNoteText" @input="handleDebouncedUpdateNote" class="w-full h-full focus:outline-none resize-none">{{ currentNote.text }}</textarea>
           </div>  
         </div>
       </main>
