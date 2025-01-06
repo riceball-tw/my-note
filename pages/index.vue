@@ -193,7 +193,7 @@
                 <Skeleton style="height: 16px; width: 31px;" class=" bg-muted-foreground h-5 rounded-md" />
               </li>
             </ol>
-          </div>
+        </div>
       </div>
     </div>
     <div class="flex flex-col">
@@ -209,22 +209,43 @@
               <span class="sr-only">Toggle navigation menu</span>
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" class="flex flex-col">
+          <SheetContent side="left" class="flex flex-col overflow-auto max-h-screen">
             <nav class="grid gap-2 text-lg font-medium">
-              <a
-                href="#"
-                class="flex items-center gap-2 text-lg font-semibold"
-              >
-                <ScrollText class="h-6 w-6" />
-                <span class="sr-only">MyNote</span>
-              </a>
-              <a
-                href="#"
-                class="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
-              >
-                <Home class="h-5 w-5" />
-                Dashboard-mobile
-              </a>
+                <!-- Notes -->
+                <div v-if="notesStatus === 'success'">
+                  <div class="flex justify-between px-4 py-2 text-sm font-semibold">
+                    <span>Today</span>
+                    <Badge variant="outline">{{ notesGroupByCategory['today']?.length ?? 0 }}</Badge>
+                  </div>
+                  <ol v-for="note in notesGroupByCategory['today']" :key="note.id">
+                    <NoteListItem :noteId="note.id" :isActive="note.id === currentNoteId" :title="note.text ?? ''" subTitle="Today" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"></NoteListItem>
+                  </ol>
+
+                  <div class="flex justify-between px-4 py-2 text-sm font-semibold">
+                    <span>Yesterday</span>
+                    <Badge variant="outline">{{ notesGroupByCategory['yesterday']?.length ?? 0 }}</Badge>
+                  </div>
+                  <ol v-for="note in notesGroupByCategory['yesterday']" :key="note.id">
+                    <NoteListItem :noteId="note.id" :isActive="note.id === currentNoteId" :title="note.text ?? ''" subTitle="Yesterday" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"></NoteListItem>
+                  </ol>
+                  
+                  <div class="flex justify-between px-4 py-2 text-sm font-semibold">
+                    <span>Earlier</span>
+                    <Badge variant="outline">{{ notesGroupByCategory['earlier']?.length ?? 0 }}</Badge>
+                  </div>
+                  <ol v-for="note in notesGroupByCategory['earlier']" :key="note.id">
+                    <NoteListItem :noteId="note.id" :isActive="note.id === currentNoteId" :title="note.text ?? ''" :subTitle="new Date(note.updatedAt).toLocaleDateString()" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"></NoteListItem>
+                  </ol>
+                  
+                </div>
+                <div v-else>
+                    <ol>
+                      <li v-for="index in 5" :key='index' class="p-4 flex gap-2 w-full flex-col items-start">
+                        <Skeleton style="height: 28px; width: 128px;" class=" bg-muted-foreground h-5 rounded-md" />
+                        <Skeleton style="height: 16px; width: 31px;" class=" bg-muted-foreground h-5 rounded-md" />
+                      </li>
+                    </ol>
+                </div>
             </nav>
           </SheetContent>
         </Sheet>
