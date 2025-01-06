@@ -1,6 +1,6 @@
 <script setup lang="ts">
   import { useDebounceFn } from '@vueuse/core';
-  import { Plus, CircleUser, Home, Menu, ScrollText, Search, Loader2 } from 'lucide-vue-next'
+  import { Plus, Trash2, CircleUser, Home, Menu, ScrollText, Search, Loader2 } from 'lucide-vue-next'
   import type { AsyncDataRequestStatus } from "#app";
 
   definePageMeta({
@@ -137,9 +137,11 @@
     navigateTo('/signin')
   }
 
+  const deleteNoteStatus = ref<AsyncDataRequestStatus>('idle')
   function handleDeleteNote() {
     if (!currentNoteId.value) return
     try {
+      deleteNoteStatus.value = 'pending'
       $fetch(`/api/notes/${currentNoteId.value}`, {
         method: 'DELETE'
       })
@@ -147,6 +149,8 @@
       currentNoteId.value = null
     } catch (err) {
       console.error(err)
+    } finally {
+      deleteNoteStatus.value = 'idle'
     }
   }
 
@@ -312,9 +316,16 @@
             <textarea ref="noteTextarea" v-model="updatedNoteText" @input="handleDebouncedUpdateNote" class="w-full h-full focus:outline-none resize-none">{{ currentNote.text }}</textarea>
           </div>
         </div>
-        <Button :disabled="!currentNoteId" variant="destructive" @click="handleDeleteNote">
+        
+        <Button v-if="deleteNoteStatus === 'pending'" :disabled="true" variant="destructive" size="icon" class="w-full">
+            <Loader2 class="w-4 h-4 animate-spin" />
+            <span aria-live="polite">Deleting Note</span>
+        </Button>
+        <Button v-else :disabled="!currentNoteId" @click="handleDeleteNote" variant="destructive" size="icon" class="w-full">
+          <Trash2 class="h-4 w-4" />
           Delete Note
-        </Button>  
+        </Button>
+
       </main>
     </div>
   </div>
