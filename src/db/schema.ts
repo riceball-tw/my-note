@@ -5,8 +5,7 @@ import { relations } from 'drizzle-orm';
 export const usersTable = mysqlTable('users', {
   id: int().autoincrement().primaryKey(),
   email: varchar({ length: 255 }).notNull().unique(),
-  password: varchar('password', { length: 255 }).notNull(),
-  salt: varchar({length: 255}).notNull()
+  password: varchar('password', { length: 255 }).notNull()
 });
 
 export const notesTable = mysqlTable('notes', {

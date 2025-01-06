@@ -25,7 +25,6 @@ export default defineEventHandler(async (event) => {
     const newUser = {
       email: body.email,
       password: passwordHash,
-      salt: salt,
     }
     const newUserId = (await db.insert(usersTable).values(newUser).$returningId())[0].id
     const userJwtToken = jwt.sign({ id: newUserId }, process.env.JWT_SECRET as string)
