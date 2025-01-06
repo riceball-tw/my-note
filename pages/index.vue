@@ -96,7 +96,7 @@
   const handleDebouncedUpdateNote = useDebounceFn(async () => {
     await updateNoteText()
     updateCurrentNoteTextToNotes()
-  }, 1000)
+  }, 300)
 
   watchEffect(() => {
     if (currentNote.value) {
