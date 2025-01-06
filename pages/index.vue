@@ -165,26 +165,31 @@
             <span>Today</span>
             <Badge variant="outline">{{ notesGroupByCategory['today']?.length ?? 0 }}</Badge>
           </div>
-          <ol v-for="note in notesGroupByCategory['today']" :key="note.id">
-            <NoteListItem :noteId="note.id" :isActive="note.id === currentNoteId" :title="note.text ?? ''" subTitle="Today" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"></NoteListItem>
+          <ol>
+            <template v-for="note in notesGroupByCategory['today']" :key="note.id">
+              <NoteListItem :noteId="note.id" :isActive="note.id === currentNoteId" :title="note.text ?? ''" subTitle="Today" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"></NoteListItem>
+            </template>
           </ol>
+
 
           <div class="flex justify-between px-4 py-2 text-sm font-semibold">
             <span>Yesterday</span>
             <Badge variant="outline">{{ notesGroupByCategory['yesterday']?.length ?? 0 }}</Badge>
           </div>
-          <ol v-for="note in notesGroupByCategory['yesterday']" :key="note.id">
-            <NoteListItem :noteId="note.id" :isActive="note.id === currentNoteId" :title="note.text ?? ''" subTitle="Yesterday" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"></NoteListItem>
+          <ol>
+            <template v-for="note in notesGroupByCategory['yesterday']" :key="note.id">
+              <NoteListItem :noteId="note.id" :isActive="note.id === currentNoteId" :title="note.text ?? ''" subTitle="Yesterday" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"></NoteListItem>
+            </template>
           </ol>
-          
           <div class="flex justify-between px-4 py-2 text-sm font-semibold">
             <span>Earlier</span>
             <Badge variant="outline">{{ notesGroupByCategory['earlier']?.length ?? 0 }}</Badge>
           </div>
-          <ol v-for="note in notesGroupByCategory['earlier']" :key="note.id">
-            <NoteListItem :noteId="note.id" :isActive="note.id === currentNoteId" :title="note.text ?? ''" :subTitle="new Date(note.updatedAt).toLocaleDateString()" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"></NoteListItem>
+          <ol>
+            <template v-for="note in notesGroupByCategory['earlier']" :key="note.id">
+              <NoteListItem :noteId="note.id" :isActive="note.id === currentNoteId" :title="note.text ?? ''" :subTitle="new Date(note.updatedAt).toLocaleDateString()" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"></NoteListItem>
+            </template>
           </ol>
-          
         </div>
         <div v-else>
             <ol>
@@ -217,24 +222,30 @@
                     <span>Today</span>
                     <Badge variant="outline">{{ notesGroupByCategory['today']?.length ?? 0 }}</Badge>
                   </div>
-                  <ol v-for="note in notesGroupByCategory['today']" :key="note.id">
-                    <NoteListItem :noteId="note.id" :isActive="note.id === currentNoteId" :title="note.text ?? ''" subTitle="Today" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"></NoteListItem>
+                  <ol>
+                    <template v-for="note in notesGroupByCategory['today']" :key="note.id">
+                      <NoteListItem :noteId="note.id" :isActive="note.id === currentNoteId" :title="note.text ?? ''" subTitle="Today" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"></NoteListItem>
+                    </template>
                   </ol>
 
                   <div class="flex justify-between px-4 py-2 text-sm font-semibold">
                     <span>Yesterday</span>
                     <Badge variant="outline">{{ notesGroupByCategory['yesterday']?.length ?? 0 }}</Badge>
                   </div>
-                  <ol v-for="note in notesGroupByCategory['yesterday']" :key="note.id">
+                  <ol>
+                    <template v-for="note in notesGroupByCategory['yesterday']" :key="note.id">
                     <NoteListItem :noteId="note.id" :isActive="note.id === currentNoteId" :title="note.text ?? ''" subTitle="Yesterday" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"></NoteListItem>
+                    </template>
                   </ol>
                   
                   <div class="flex justify-between px-4 py-2 text-sm font-semibold">
                     <span>Earlier</span>
                     <Badge variant="outline">{{ notesGroupByCategory['earlier']?.length ?? 0 }}</Badge>
                   </div>
-                  <ol v-for="note in notesGroupByCategory['earlier']" :key="note.id">
+                  <ol>
+                    <template v-for="note in notesGroupByCategory['earlier']" :key="note.id">
                     <NoteListItem :noteId="note.id" :isActive="note.id === currentNoteId" :title="note.text ?? ''" :subTitle="new Date(note.updatedAt).toLocaleDateString()" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"></NoteListItem>
+                    </template>
                   </ol>
                   
                 </div>
