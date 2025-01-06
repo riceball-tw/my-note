@@ -130,6 +130,13 @@
       createNoteStatus.value = 'idle'
     }
   }
+
+  function handleLogout() {
+    const jwtCookie = useCookie('userJwtToken')
+    jwtCookie.value = null
+    navigateTo('/signin')
+  }
+
 </script>
 
 
@@ -241,12 +248,7 @@
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>My Account</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>Settings</DropdownMenuItem>
-            <DropdownMenuItem>Support</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>Logout</DropdownMenuItem>
+            <DropdownMenuItem @click="handleLogout">Logout</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </header>
