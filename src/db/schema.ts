@@ -5,15 +5,15 @@ import { relations } from 'drizzle-orm';
 export const usersTable = mysqlTable('users', {
   id: int().autoincrement().primaryKey(),
   email: varchar({ length: 255 }).notNull().unique(),
-  password: varchar('password', { length: 255 }).notNull()
+  password: varchar({ length: 255 }).notNull()
 });
 
 export const notesTable = mysqlTable('notes', {
   id: serial().primaryKey(),
-  userId: int().notNull().references(() => usersTable.id),
+  userId: int('user_id').notNull().references(() => usersTable.id),
   text: text(),
-  createdAt: timestamp({ mode: 'date' }).defaultNow().notNull(),
-  updatedAt: timestamp({ mode: 'date' }).defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { mode: 'date' }).defaultNow().onUpdateNow().notNull(),
 })
 
 export const userRelations = relations(usersTable, ({ many }) => ({
