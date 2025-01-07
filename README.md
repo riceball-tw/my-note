@@ -1,75 +1,69 @@
-# Nuxt Minimal Starter
+## MyNote
 
-Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+![App demo](assets/demo.png)
 
-## Setup
+A MySQL + Drizzle ORM + Nuxt 3 fullstack modern note site.
 
-Make sure to install dependencies:
+## Features
+
+- Nuxt 3 Universal Rendering mode, support both SSR and CSR
+- TypeScript + Drizzle ORM + Zod for Safety
+- Tailwind + Shadcn Vue for fast UI iteration
+- JWT based Auth
+- RWD UI for mobile and desktop
+
+## How to Start
+
+### Install Dependence
 
 ```bash
-# npm
-npm install
-
-# pnpm
 pnpm install
-
-# yarn
-yarn install
-
-# bun
-bun install
 ```
 
-## Development Server
-
-Start the development server on `http://localhost:3000`:
+### Setup `.env`
 
 ```bash
-# npm
-npm run dev
+DATABASE_URL=mysql://user:password@localhost:3306/your_database
+JWT_SECRET=***
+```
 
-# pnpm
+Search for online JWT secret generator or generate by using node script.
+
+``` bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+### Database Migrations
+
+For more, you can refer to [drizzle migrations document](https://orm.drizzle.team/docs/migrations)
+
+```bash
+npx drizzle-kit generate
+npx drizzle-kit push
+```
+
+### Start the dev server!
+
+```bash
 pnpm dev
-
-# yarn
-yarn dev
-
-# bun
-bun run dev
 ```
 
-## Production
+## Database Schema
 
-Build the application for production:
+```mermaid
+erDiagram
+    USERS {
+        int id PK "Auto-increment primary key"
+        varchar email "Unique and not null"
+        varchar password "Not null"
+    }
+    NOTES {
+        int id PK "Serial primary key"
+        int user_id FK "Foreign key references USERS.id"
+        text text "Optional text content"
+        timestamp created_at "Default to current date, not null"
+        timestamp updated_at "Default to current date, updates automatically"
+    }
 
-```bash
-# npm
-npm run build
-
-# pnpm
-pnpm build
-
-# yarn
-yarn build
-
-# bun
-bun run build
+    USERS ||--o{ NOTES : "has many"
 ```
-
-Locally preview production build:
-
-```bash
-# npm
-npm run preview
-
-# pnpm
-pnpm preview
-
-# yarn
-yarn preview
-
-# bun
-bun run preview
-```
-
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
