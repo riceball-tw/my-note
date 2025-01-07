@@ -321,7 +321,7 @@
             <Loader2 class="w-4 h-4 animate-spin" />
             <span aria-live="polite">Deleting Note</span>
         </Button>
-        <Button v-else :disabled="!currentNoteId" @click="handleDeleteNote" variant="destructive" size="icon" class="w-full">
+        <Button v-else :disabled="!currentNoteId" @click="handleDeleteNote" variant="outline" size="icon" class="w-full">
           <Trash2 class="h-4 w-4" />
           Delete Note
         </Button>
