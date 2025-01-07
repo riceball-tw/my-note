@@ -277,7 +277,7 @@
             </nav>
           </SheetContent>
         </Sheet>
-        <div class="w-full flex-1">
+        <!-- <div class="w-full flex-1">
           <form>
             <div class="relative">
               <Search class="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -288,10 +288,10 @@
               />
             </div>
           </form>
-        </div>
+        </div> -->
         <DropdownMenu>
           <DropdownMenuTrigger as-child>
-            <Button variant="secondary" size="icon" class="rounded-full">
+            <Button variant="secondary" size="icon" class="rounded-full ml-auto">
               <CircleUser class="h-5 w-5" />
               <span class="sr-only">Toggle user menu</span>
             </Button>
