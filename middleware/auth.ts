@@ -1,4 +1,4 @@
-export default defineNuxtRouteMiddleware(async (event) => {
+export default defineNuxtRouteMiddleware(async () => {
   if (import.meta.client) return
 
   const { $verifyJwtToken } = useNuxtApp()
@@ -9,7 +9,7 @@ export default defineNuxtRouteMiddleware(async (event) => {
   }
   try {
     await $verifyJwtToken(jwtCookie.value, process.env.JWT_SECRET as string)
-  } catch(err) {
+  } catch {
     return navigateTo('/signup')
   }
 })

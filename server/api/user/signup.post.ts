@@ -1,8 +1,7 @@
 import { db } from '@/src/index'
-import { usersTable } from '@/src/db/schema';
+import { usersTable, usersInsertRequestSchema } from '@/src/db/schema';
 import bcrypt from 'bcryptjs'
 import type { QueryError } from 'mysql2'
-import { usersInsertRequestSchema } from '@/src/db/schema';
 import { readValidatedBody } from "h3";
 import { fromError } from 'zod-validation-error';
 import jwt from 'jsonwebtoken'

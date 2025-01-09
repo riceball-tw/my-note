@@ -1,5 +1,3 @@
-import type { AsyncDataRequestStatus } from "#app";
-
 export async function useSignUp(body) {
   const { status: signUpStatus } = await useFetch('/api/user', {
     method: 'POST',
