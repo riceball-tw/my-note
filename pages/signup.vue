@@ -54,19 +54,20 @@
           <Label for="email">Email</Label>
           <Input
             id="email"
+            data-test-email
             type="email"
             required
           />
         </div>
         <div class="grid gap-2">
-          <Label for="password">Password</Label>
+          <Label data-test-password for="password">Password</Label>
           <Input id="password" type="password" />
         </div>
         <Button v-if="signUpStatus === 'pending'" disabled>
           <Loader2 class="w-4 h-4 mr-2 animate-spin" />
           Please wait
         </Button>
-        <Button v-else type="submit" class="w-full">
+        <Button v-else data-test-signup type="submit" class="w-full">
           Create an account
         </Button>
       </form>
