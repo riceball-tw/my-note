@@ -32,6 +32,9 @@ importers:
       drizzle-orm:
         specifier: ^0.38.3
         version: 0.38.3(mysql2@3.12.0)
+      drizzle-seed:
+        specifier: ^0.3.0
+        version: 0.3.0(drizzle-orm@0.38.3(mysql2@3.12.0))
       drizzle-zod:
         specifier: ^0.6.1
         version: 0.6.1(drizzle-orm@0.38.3(mysql2@3.12.0))(zod@3.24.1)
@@ -2526,6 +2529,14 @@ packages:
       sqlite3:
         optional: true
 
+  drizzle-seed@0.3.0:
+    resolution: {integrity: sha512-8WSt1WdtYWqClsCxKeAmU/bw8X+weYtuA/h8M3gVc8LiHU2AZX5ZUnvUxwdBsP+SkN26ARGhmU0XIJ2OEmHmfA==}
+    peerDependencies:
+      drizzle-orm: '>=0.36.4'
+    peerDependenciesMeta:
+      drizzle-orm:
+        optional: true
+
   drizzle-zod@0.6.1:
     resolution: {integrity: sha512-huEbUgnsuR8tupnmLiyB2F1I2H9dswI3GfM36IbIqx9i0YUeYjRsDpJVyFVeziUvI1ogT9JHRL2Q03cC4QmvxA==}
     peerDependencies:
@@ -4128,6 +4139,9 @@ packages:
   punycode@2.3.1:
     resolution: {integrity: sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==}
     engines: {node: '>=6'}
+
+  pure-rand@6.1.0:
+    resolution: {integrity: sha512-bVWawvoZoBYpp6yIoQtQXHZjmz35RSVHnUOTefl8Vcjr8snTPY1wnpSPMWekcFwbxI6gtmT7rSYPFvz71ldiOA==}
 
   queue-microtask@1.2.3:
     resolution: {integrity: sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A==}
@@ -7501,6 +7515,12 @@ snapshots:
     optionalDependencies:
       mysql2: 3.12.0
 
+  drizzle-seed@0.3.0(drizzle-orm@0.38.3(mysql2@3.12.0)):
+    dependencies:
+      pure-rand: 6.1.0
+    optionalDependencies:
+      drizzle-orm: 0.38.3(mysql2@3.12.0)
+
   drizzle-zod@0.6.1(drizzle-orm@0.38.3(mysql2@3.12.0))(zod@3.24.1):
     dependencies:
       drizzle-orm: 0.38.3(mysql2@3.12.0)
@@ -9435,6 +9455,8 @@ snapshots:
   protocols@2.0.1: {}
 
   punycode@2.3.1: {}
+
+  pure-rand@6.1.0: {}
 
   queue-microtask@1.2.3: {}
 
