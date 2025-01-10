@@ -51,14 +51,17 @@
       return acc;
     }, defaultNotes);
 
-
-    const sortedGroupedNotes = Object.fromEntries(
-      Object.entries(groupedNotes).map(([category, notes]: [string, Notes]) => [
-      category,
-      notes!.slice().sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-      ])
-    )
-
+    const sortedGroupedNotes = {
+      today: groupedNotes.today?.slice().sort((a, b) => 
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      ) ?? [],
+      yesterday: groupedNotes.yesterday?.slice().sort((a, b) => 
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      ) ?? [],
+      earlier: groupedNotes.earlier?.slice().sort((a, b) => 
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      ) ?? []
+    };
 
     return sortedGroupedNotes;
   })
@@ -145,7 +148,7 @@
       $fetch(`/api/notes/${currentNoteId.value}`, {
         method: 'DELETE'
       })
-      notes.value = notes.value?.filter(note => note.id !== currentNoteId.value)
+      notes.value = notes.value!.filter(note => note.id !== currentNoteId.value)
       currentNoteId.value = null
     } catch (err) {
       console.error(err)
