@@ -1,6 +1,6 @@
 <script setup lang="ts">
   import { useDebounceFn } from '@vueuse/core';
-  import { Plus, Trash2, CircleUser, Home, Menu, ScrollText, Search, Loader2 } from 'lucide-vue-next'
+  import { Plus, Trash2, CircleUser, Menu, ScrollText, Loader2 } from 'lucide-vue-next'
   import type { AsyncDataRequestStatus } from "#app";
 
   definePageMeta({
@@ -166,11 +166,11 @@
             <ScrollText class="h-6 w-6" />
             <span class="">MyNote</span>
           </a>
-          <Button v-if="createNoteStatus === 'pending'" @click="handleCreateNote" variant="outline" size="icon" class="ml-auto h-8 w-8">
+          <Button v-if="createNoteStatus === 'pending'" variant="outline" size="icon" class="ml-auto h-8 w-8" @click="handleCreateNote">
             <Loader2 class="w-4 h-4 animate-spin" />
             <span class="sr-only" aria-live="polite">Creating Note</span>
           </Button>
-          <Button v-else @click="handleCreateNote" variant="outline" size="icon" class="ml-auto h-8 w-8">
+          <Button v-else variant="outline" size="icon" class="ml-auto h-8 w-8" @click="handleCreateNote">
             <Plus class="h-4 w-4" />
             <span class="sr-only">Create Note</span>
           </Button>
@@ -184,7 +184,7 @@
           </div>
           <ol>
             <template v-for="note in notesGroupByCategory['today']" :key="note.id">
-              <NoteListItem :noteId="note.id" :isActive="note.id === currentNoteId" :title="note.text ?? ''" subTitle="Today" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"></NoteListItem>
+              <NoteListItem :note-id="note.id" :is-active="note.id === currentNoteId" :title="note.text ?? ''" sub-title="Today" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"/>
             </template>
           </ol>
 
@@ -195,7 +195,7 @@
           </div>
           <ol>
             <template v-for="note in notesGroupByCategory['yesterday']" :key="note.id">
-              <NoteListItem :noteId="note.id" :isActive="note.id === currentNoteId" :title="note.text ?? ''" subTitle="Yesterday" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"></NoteListItem>
+              <NoteListItem :note-id="note.id" :is-active="note.id === currentNoteId" :title="note.text ?? ''" sub-title="Yesterday" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"/>
             </template>
           </ol>
           <div class="flex justify-between px-4 py-2 text-sm font-semibold">
@@ -204,7 +204,7 @@
           </div>
           <ol>
             <template v-for="note in notesGroupByCategory['earlier']" :key="note.id">
-              <NoteListItem :noteId="note.id" :isActive="note.id === currentNoteId" :title="note.text ?? ''" :subTitle="new Date(note.updatedAt).toLocaleDateString()" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"></NoteListItem>
+              <NoteListItem :note-id="note.id" :is-active="note.id === currentNoteId" :title="note.text ?? ''" :sub-title="new Date(note.updatedAt).toLocaleDateString()" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"/>
             </template>
           </ol>
         </div>
@@ -241,7 +241,7 @@
                   </div>
                   <ol>
                     <template v-for="note in notesGroupByCategory['today']" :key="note.id">
-                      <NoteListItem :noteId="note.id" :isActive="note.id === currentNoteId" :title="note.text ?? ''" subTitle="Today" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"></NoteListItem>
+                      <NoteListItem :note-id="note.id" :is-active="note.id === currentNoteId" :title="note.text ?? ''" sub-title="Today" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"/>
                     </template>
                   </ol>
 
@@ -251,7 +251,7 @@
                   </div>
                   <ol>
                     <template v-for="note in notesGroupByCategory['yesterday']" :key="note.id">
-                    <NoteListItem :noteId="note.id" :isActive="note.id === currentNoteId" :title="note.text ?? ''" subTitle="Yesterday" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"></NoteListItem>
+                    <NoteListItem :note-id="note.id" :is-active="note.id === currentNoteId" :title="note.text ?? ''" sub-title="Yesterday" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"/>
                     </template>
                   </ol>
                   
@@ -261,7 +261,7 @@
                   </div>
                   <ol>
                     <template v-for="note in notesGroupByCategory['earlier']" :key="note.id">
-                    <NoteListItem :noteId="note.id" :isActive="note.id === currentNoteId" :title="note.text ?? ''" :subTitle="new Date(note.updatedAt).toLocaleDateString()" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"></NoteListItem>
+                    <NoteListItem :note-id="note.id" :is-active="note.id === currentNoteId" :title="note.text ?? ''" :sub-title="new Date(note.updatedAt).toLocaleDateString()" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"/>
                     </template>
                   </ol>
                   
@@ -313,7 +313,7 @@
             <time class="mb-8 inline-block">
               Last Updated: {{ new Date(currentNote.updatedAt).toLocaleDateString() }}
             </time>
-            <textarea ref="noteTextarea" v-model="updatedNoteText" @input="handleDebouncedUpdateNote" class="w-full h-full focus:outline-none resize-none">{{ currentNote.text }}</textarea>
+            <textarea ref="noteTextarea" v-model="updatedNoteText" class="w-full h-full focus:outline-none resize-none" @input="handleDebouncedUpdateNote" />
           </div>
         </div>
         
@@ -321,7 +321,7 @@
             <Loader2 class="w-4 h-4 animate-spin" />
             <span aria-live="polite">Deleting Note</span>
         </Button>
-        <Button v-else :disabled="!currentNoteId" @click="handleDeleteNote" variant="outline" size="icon" class="w-full">
+        <Button v-else :disabled="!currentNoteId" variant="outline" size="icon" class="w-full" @click="handleDeleteNote">
           <Trash2 class="h-4 w-4" />
           Delete Note
         </Button>

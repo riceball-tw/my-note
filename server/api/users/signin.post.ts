@@ -1,7 +1,6 @@
 import { db } from '@/src/index'
-import { usersTable } from '@/src/db/schema';
+import { usersTable, usersInsertRequestSchema } from '@/src/db/schema';
 import bcrypt from 'bcryptjs'
-import { usersInsertRequestSchema } from '@/src/db/schema';
 import { readValidatedBody } from "h3";
 import { fromError } from 'zod-validation-error';
 import jwt from 'jsonwebtoken'
@@ -32,7 +31,7 @@ export default defineEventHandler(async (event) => {
     const userJwtToken = jwt.sign({ id: targetUser.id }, process.env.JWT_SECRET as string)
     setCookie(event, 'userJwtToken', userJwtToken)
     setResponseStatus(event, 204)
-  } catch(err) {
+  } catch {
     throw createError({
       statusCode: 401,
       message: "Username or Password is invalid."
