@@ -78,7 +78,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Linter
+      - name: Typecheck
         run: pnpm typecheck
 
          
