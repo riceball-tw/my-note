@@ -18,7 +18,7 @@
       
     try {
       signUpStatus.value = 'pending'
-      await $fetch('/api/user/signin', {
+      await $fetch('/api/users/signin', {
         method: 'POST',
         body: {
           email,

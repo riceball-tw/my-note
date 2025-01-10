@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { initialTestingUser, initializeTestingDb } from '@/utils/db'
 
 describe('Sign in user API', () => {
-  const API_URL = 'http://localhost:3000/api/user/signin'
+  const API_URL = 'http://localhost:3000/api/users/signin'
 
   it('Should successfully sign in user', async () => {
     await initializeTestingDb()

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { initialTestingUser, initializeTestingDb } from '@/utils/db'
 
 describe('Sign up user API', () => {
-  const API_URL = 'http://localhost:3000/api/user/signup'
+  const API_URL = 'http://localhost:3000/api/users/signup'
   const validTestingUser = {
     email: 'foobar@gmail.com',
     password: '12345678'
