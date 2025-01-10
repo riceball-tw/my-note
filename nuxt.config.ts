@@ -6,7 +6,8 @@ export default defineNuxtConfig({
     '@nuxtjs/tailwindcss',
     'shadcn-nuxt',
     '@nuxtjs/color-mode',
-    '@nuxt/eslint'
+    '@nuxt/eslint',
+    '@nuxt/test-utils/module'
   ],
   shadcn: {
     /**
