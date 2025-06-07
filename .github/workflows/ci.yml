@@ -46,6 +46,9 @@ jobs:
     env:
       DATABASE_URL: mysql://root:root@localhost:3306/test_db
     steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
       - name: Environment Setup
         uses: ./.github/actions/setup
 
