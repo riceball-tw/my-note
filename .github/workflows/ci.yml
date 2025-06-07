@@ -45,7 +45,10 @@ jobs:
           MYSQL_DATABASE: test_db
     env:
       DATABASE_URL: mysql://root:root@localhost:3306/test_db
-    steps:   
+    steps:
+      - name: Environment Setup
+        uses: ./.github/actions/setup
+
       - name: Install Playwright Browsers
         run: pnpm exec playwright install --with-deps
 
