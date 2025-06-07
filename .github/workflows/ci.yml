@@ -57,11 +57,8 @@ jobs:
         run: |
           pnpm drizzle-kit migrate
 
-      - name: Run Dev Server
-        run: pnpm dev
-
-      - name: Unit Test
-        run: pnpm unit-test
+      - name: Unit Test Dev Server
+        run: pnpm dev & pnpm unit-test
 
   e2e:
     runs-on: ubuntu-latest
