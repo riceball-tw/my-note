@@ -35,6 +35,17 @@ jobs:
 
   unit-test:
     runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        ports:
+          - 3306:3306
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: test_db
+    env:
+      DATABASE_URL: mysql://root:root@localhost:3306/test_db
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -42,7 +53,14 @@ jobs:
       - name: Environment Setup
         uses: ./.github/actions/setup
 
-      - name: Typecheck
+      - name: Database Migration
+        run: |
+          pnpm drizzle-kit migrate
+
+      - name: Run Dev Server
+        run: pnpm dev
+
+      - name: Unit Test
         run: pnpm unit-test
 
   e2e:
