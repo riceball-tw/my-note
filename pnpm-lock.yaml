@@ -66,10 +66,10 @@ importers:
         specifier: ^1.0.7
         version: 1.0.7(tailwindcss@3.4.17)
       vue:
-        specifier: latest
+        specifier: ^3.5.13
         version: 3.5.13(typescript@5.7.3)
       vue-router:
-        specifier: latest
+        specifier: ^4.5.0
         version: 4.5.0(vue@3.5.13(typescript@5.7.3))
       zod-validation-error:
         specifier: ^3.4.0
@@ -77,7 +77,7 @@ importers:
     devDependencies:
       '@nuxt/test-utils':
         specifier: ^3.15.1
-        version: 3.15.1(@playwright/test@1.49.1)(@types/node@22.10.3)(@vitest/ui@2.1.8(vitest@2.1.8))(@vue/test-utils@2.4.6)(happy-dom@16.5.2)(magicast@0.3.5)(playwright-core@1.49.1)(rollup@4.29.1)(terser@5.37.0)(typescript@5.7.3)(vitest@2.1.8(@types/node@22.10.3)(@vitest/ui@2.1.8)(happy-dom@16.5.2)(terser@5.37.0))
+        version: 3.15.1(@playwright/test@1.49.1)(@types/node@22.10.3)(@vitest/ui@2.1.8)(@vue/test-utils@2.4.6)(happy-dom@16.5.2)(magicast@0.3.5)(playwright-core@1.49.1)(rollup@4.29.1)(terser@5.37.0)(typescript@5.7.3)(vitest@2.1.8)
       '@nuxtjs/tailwindcss':
         specifier: ^6.12.2
         version: 6.12.2(magicast@0.3.5)(rollup@4.29.1)
@@ -6253,7 +6253,7 @@ snapshots:
       - rollup
       - supports-color
 
-  '@nuxt/test-utils@3.15.1(@playwright/test@1.49.1)(@types/node@22.10.3)(@vitest/ui@2.1.8(vitest@2.1.8))(@vue/test-utils@2.4.6)(happy-dom@16.5.2)(magicast@0.3.5)(playwright-core@1.49.1)(rollup@4.29.1)(terser@5.37.0)(typescript@5.7.3)(vitest@2.1.8(@types/node@22.10.3)(@vitest/ui@2.1.8)(happy-dom@16.5.2)(terser@5.37.0))':
+  '@nuxt/test-utils@3.15.1(@playwright/test@1.49.1)(@types/node@22.10.3)(@vitest/ui@2.1.8)(@vue/test-utils@2.4.6)(happy-dom@16.5.2)(magicast@0.3.5)(playwright-core@1.49.1)(rollup@4.29.1)(terser@5.37.0)(typescript@5.7.3)(vitest@2.1.8)':
     dependencies:
       '@nuxt/kit': 3.15.0(magicast@0.3.5)(rollup@4.29.1)
       '@nuxt/schema': 3.15.0(magicast@0.3.5)(rollup@4.29.1)
@@ -6279,7 +6279,7 @@ snapshots:
       unenv: 1.10.0
       unplugin: 2.1.2
       vite: 5.4.11(@types/node@22.10.3)(terser@5.37.0)
-      vitest-environment-nuxt: 1.0.1(@playwright/test@1.49.1)(@types/node@22.10.3)(@vitest/ui@2.1.8(vitest@2.1.8))(@vue/test-utils@2.4.6)(happy-dom@16.5.2)(magicast@0.3.5)(playwright-core@1.49.1)(rollup@4.29.1)(terser@5.37.0)(typescript@5.7.3)(vitest@2.1.8(@types/node@22.10.3)(@vitest/ui@2.1.8)(happy-dom@16.5.2)(terser@5.37.0))
+      vitest-environment-nuxt: 1.0.1(@playwright/test@1.49.1)(@types/node@22.10.3)(@vitest/ui@2.1.8)(@vue/test-utils@2.4.6)(happy-dom@16.5.2)(magicast@0.3.5)(playwright-core@1.49.1)(rollup@4.29.1)(terser@5.37.0)(typescript@5.7.3)(vitest@2.1.8)
       vue: 3.5.13(typescript@5.7.3)
     optionalDependencies:
       '@playwright/test': 1.49.1
@@ -10417,9 +10417,9 @@ snapshots:
       tsx: 4.19.2
       yaml: 2.7.0
 
-  vitest-environment-nuxt@1.0.1(@playwright/test@1.49.1)(@types/node@22.10.3)(@vitest/ui@2.1.8(vitest@2.1.8))(@vue/test-utils@2.4.6)(happy-dom@16.5.2)(magicast@0.3.5)(playwright-core@1.49.1)(rollup@4.29.1)(terser@5.37.0)(typescript@5.7.3)(vitest@2.1.8(@types/node@22.10.3)(@vitest/ui@2.1.8)(happy-dom@16.5.2)(terser@5.37.0)):
+  vitest-environment-nuxt@1.0.1(@playwright/test@1.49.1)(@types/node@22.10.3)(@vitest/ui@2.1.8)(@vue/test-utils@2.4.6)(happy-dom@16.5.2)(magicast@0.3.5)(playwright-core@1.49.1)(rollup@4.29.1)(terser@5.37.0)(typescript@5.7.3)(vitest@2.1.8):
     dependencies:
-      '@nuxt/test-utils': 3.15.1(@playwright/test@1.49.1)(@types/node@22.10.3)(@vitest/ui@2.1.8(vitest@2.1.8))(@vue/test-utils@2.4.6)(happy-dom@16.5.2)(magicast@0.3.5)(playwright-core@1.49.1)(rollup@4.29.1)(terser@5.37.0)(typescript@5.7.3)(vitest@2.1.8(@types/node@22.10.3)(@vitest/ui@2.1.8)(happy-dom@16.5.2)(terser@5.37.0))
+      '@nuxt/test-utils': 3.15.1(@playwright/test@1.49.1)(@types/node@22.10.3)(@vitest/ui@2.1.8)(@vue/test-utils@2.4.6)(happy-dom@16.5.2)(magicast@0.3.5)(playwright-core@1.49.1)(rollup@4.29.1)(terser@5.37.0)(typescript@5.7.3)(vitest@2.1.8)
     transitivePeerDependencies:
       - '@cucumber/cucumber'
       - '@jest/globals'
