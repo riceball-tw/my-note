@@ -33,6 +33,39 @@ jobs:
       - name: Install Playwright Browsers
         run: pnpm exec playwright install --with-deps
 
+  unit-test:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        ports:
+          - 3306:3306
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: test_db
+    env:
+      DATABASE_URL: mysql://root:root@localhost:3306/test_db
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Environment Setup
+        uses: ./.github/actions/setup
+
+      - name: Database Migration
+        run: |
+          pnpm drizzle-kit migrate
+
+      - name: Start Dev Server
+        run: pnpm dev &
+
+      - name: Wait for Dev Server to be Ready
+        run: pnpm wait-on http://localhost:3000
+
+      - name: Run Unit Tests
+        run: pnpm unit-test
+
   e2e:
     runs-on: ubuntu-latest
     services:
