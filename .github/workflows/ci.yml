@@ -45,6 +45,7 @@ jobs:
           MYSQL_DATABASE: test_db
     env:
       DATABASE_URL: mysql://root:root@localhost:3306/test_db
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
