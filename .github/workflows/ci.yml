@@ -61,7 +61,7 @@ jobs:
         run: pnpm dev &
 
       - name: Wait for Dev Server to be Ready
-        run: npx wait-on http://localhost:3000
+        run: pnpm wait-on http://localhost:3000
 
       - name: Run Unit Tests
         run: pnpm unit-test
