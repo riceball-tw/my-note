@@ -1,9 +1,6 @@
 name: CI
 on:
   push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
 
 # pnpm cache doc
 # https://github.com/pnpm/action-setup/tree/v4/?tab=readme-ov-file#use-cache-to-reduce-installation-time
@@ -33,18 +30,43 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
-         
+      - name: Install Playwright Browsers
+        run: pnpm exec playwright install --with-deps
 
-      # Since I haven't deploy any db, test is unable to run in CI right now, disable for now
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        ports:
+          - 3306:3306
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: test_db
+    env:
+      DATABASE_URL: mysql://root:root@localhost:3306/test_db
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-      # - name: Install Playwright Browsers
-      #   run: pnpm exec playwright install --with-deps
-      # - name: Run Playwright tests
-      #   run: pnpm exec playwright test
-      # - name: Upload playwright artifact
-      #   uses: actions/upload-artifact@v4
-      #   if: ${{ !cancelled() }}
-      #   with:
-      #     name: playwright-report
-      #     path: playwright-report/
-      #     retention-days: 30
+      - name: Environment Setup
+        uses: ./.github/actions/setup
+
+      - name: Install Playwright Browsers
+        run: pnpm exec playwright install --with-deps
+
+      - name: Database Migration
+        run: |
+          pnpm drizzle-kit migrate
+
+      - name: Run Playwright tests
+        run: pnpm exec playwright test
+      
+      - name: Upload playwright artifact
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
