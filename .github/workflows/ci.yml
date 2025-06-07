@@ -55,6 +55,10 @@ jobs:
       - name: Install Playwright Browsers
         run: pnpm exec playwright install --with-deps
 
+      - name: Database Migration
+        run: |
+          pnpm drizzle-kit migrate
+
       - name: Run Playwright tests
         run: pnpm exec playwright test
       
