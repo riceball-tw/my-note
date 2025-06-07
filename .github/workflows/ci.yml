@@ -57,8 +57,14 @@ jobs:
         run: |
           pnpm drizzle-kit migrate
 
-      - name: Unit Test Dev Server
-        run: pnpm dev & pnpm unit-test
+      - name: Start Dev Server
+        run: pnpm dev &
+
+      - name: Wait for Dev Server to be Ready
+        run: npx wait-on http://localhost:3000
+
+      - name: Run Unit Tests
+        run: pnpm unit-test
 
   e2e:
     runs-on: ubuntu-latest
