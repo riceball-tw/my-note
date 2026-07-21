@@ -1,48 +1,24 @@
-import { db } from '@/src/index'
-import { eq } from 'drizzle-orm';
-import { notesTable } from '@/src/db/schema';
-import jwt from 'jsonwebtoken'
+import { getRouterParam, readValidatedBody } from 'h3'
+import { fromError } from 'zod-validation-error'
+import { getUserId } from '@/server/utils/auth'
+import { updateNote } from '@/server/utils/notes'
+import { noteUpdateRequestSchema } from '@/src/db/schema'
 
+// PATCH /api/notes/:id — update a note's title and/or text (ownership enforced in the service).
 export default defineEventHandler(async (event) => {
-    const body = await readBody(event)
-    const targetId = Number((await getRouterParam(event, 'id')))
+  const userId = getUserId(event)
+  const targetId = Number(getRouterParam(event, 'id'))
 
-    const cookies = parseCookies(event)
-    const userJwtToken = cookies.userJwtToken
+  const validationResult = await readValidatedBody(event, body =>
+    noteUpdateRequestSchema.safeParse(body),
+  )
 
-    if (!userJwtToken) {
-      throw createError({
-        statusCode: 401,
-        message: "Not authorized to update"
-      })
-    }
+  if (!validationResult.success) {
+    throw createError({
+      statusCode: 400,
+      message: fromError(validationResult.error).toString(),
+    })
+  }
 
-    const decodedToken = await jwt.verify(userJwtToken, process.env.JWT_SECRET as string) as { id: number }
-
-    const noteTryingToUpdate = (await db
-    .select()
-    .from(notesTable)
-    .where(eq(notesTable.id, targetId)))[0]
-
-
-    if (!noteTryingToUpdate) {
-      throw createError({
-        statusCode: 401,
-        message: "Note does not exist."
-      })
-    }
-
-    if (noteTryingToUpdate.userId !== decodedToken.id) {
-      throw createError({
-        statusCode: 401,
-        message: "Not authorized to update this note."
-      })
-    }
-    
-    await db
-      .update(notesTable)
-      .set({
-        text: body.updatedNoteText
-      })
-      .where(eq(notesTable.id, targetId))
+  return updateNote(userId, targetId, validationResult.data)
 })

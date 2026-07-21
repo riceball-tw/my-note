@@ -1,27 +1,8 @@
-import { db } from '@/src/index'
-import { notesTable } from '@/src/db/schema';
-import jwt from 'jsonwebtoken'
-import { eq } from 'drizzle-orm';
+import { getUserId } from '@/server/utils/auth'
+import { listNotes } from '@/server/utils/notes'
 
+// GET /api/notes — list the signed-in user's notes (newest first).
 export default defineEventHandler(async (event) => {
-  const cookies = parseCookies(event)
-  const userJwtToken = cookies.userJwtToken
-
-  if (!userJwtToken) {
-    throw createError({
-      statusCode: 401,
-      message: "Not authorized to access notes"
-    })
-  }
-
-  const decodedToken = await jwt.verify(userJwtToken, process.env.JWT_SECRET as string) as { id: number }
-
-
-  const targetUser = await db
-    .select()
-    .from(notesTable)
-    .where(eq(notesTable.userId, decodedToken.id))
-  
-
-  return targetUser
+  const userId = getUserId(event)
+  return listNotes(userId)
 })
