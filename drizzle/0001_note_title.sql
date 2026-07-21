@@ -1,0 +1,1 @@
+ALTER TABLE `notes` ADD `title` varchar(255) DEFAULT 'Untitled note' NOT NULL;

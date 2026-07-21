@@ -1,13 +1,53 @@
 <script setup lang="ts">
   import { useDebounceFn } from '@vueuse/core';
-  import { Plus, Trash2, CircleUser, Menu, ScrollText, Loader2 } from 'lucide-vue-next'
+  import { Plus, Trash2, CircleUser, Menu, ScrollText, Loader2, MessageSquare, Bot } from 'lucide-vue-next'
   import type { AsyncDataRequestStatus } from "#app";
+  import { useChat } from '@ai-sdk/vue'
+  import { CopyIcon, RefreshCcwIcon, XIcon } from '@lucide/vue'
+  import type { ChatStatus, UIMessage } from 'ai'
+  import type { PromptInputMessage } from '@/components/ai-elements/prompt-input'
+
+  import {
+    Conversation,
+    ConversationContent,
+    ConversationScrollButton,
+    ConversationEmptyState,
+  } from '@/components/ai-elements/conversation'
+  import {
+    Message,
+    MessageAction,
+    MessageActions,
+    MessageContent,
+    MessageResponse,
+  } from '@/components/ai-elements/message'
+  import {
+    PromptInput,
+    PromptInputBody,
+    PromptInputFooter,
+    PromptInputTextarea,
+    PromptInputSubmit,
+    PromptInputTools,
+  } from '@/components/ai-elements/prompt-input'
+  import { Loader } from '@/components/ai-elements/loader'
+  import {
+    Reasoning,
+    ReasoningContent,
+    ReasoningTrigger,
+  } from '@/components/ai-elements/reasoning'
+  import {
+    Tool,
+    ToolContent,
+    ToolHeader,
+    ToolInput,
+    ToolOutput,
+  } from '@/components/ai-elements/tool'
 
   definePageMeta({
     middleware: ['auth']
   })
 
-  const { data: notes, status: notesStatus } = useLazyFetch('/api/notes', {
+  // ── Notes ──
+  const { data: notes, status: notesStatus, refresh: refreshNotes } = useLazyFetch('/api/notes', {
     transform: (res) => {
       return res?.map(note => {
         const noteUpdatedString = new Date(note.updatedAt).toDateString();
@@ -23,6 +63,7 @@
   })
   const currentNoteId = ref<null | number>(null)
   const updatedNoteText = ref<string | null>('')
+  const updatedNoteTitle = ref<string>('')
   const currentNote = computed(() => {
     if (!currentNoteId.value) return null
     return notes?.value?.find(note => note.id === currentNoteId.value)
@@ -70,40 +111,40 @@
     currentNoteId.value = id
   }
 
-  async function updateNoteText() {
+  async function saveNotePatch(patch: { title?: string, text?: string | null }) {
+    if (!currentNoteId.value) return
     try {
       await $fetch(`/api/notes/${currentNoteId.value}`, {
         method: 'PATCH',
-        body: {
-          updatedNoteText: updatedNoteText.value
-        }
+        body: patch
       })
+      mergeIntoNotes(currentNoteId.value, patch)
     } catch(err) {
       console.error(err)
     }
   }
 
-  function updateCurrentNoteTextToNotes() {
+  function mergeIntoNotes(id: number, patch: { title?: string, text?: string | null }) {
     if (!notes.value) return
-    notes.value = notes.value.map(note => {
-      if (note.id === currentNoteId.value) {
-        return {
-          ...note,
-          text: updatedNoteText.value
-        }
-      }
-      return note
-    })
+    notes.value = notes.value.map(note =>
+      note.id === id ? { ...note, ...patch } : note
+    )
   }
 
-  const handleDebouncedUpdateNote = useDebounceFn(async () => {
-    await updateNoteText()
-    updateCurrentNoteTextToNotes()
+  const handleDebouncedUpdateNote = useDebounceFn(() => {
+    saveNotePatch({ text: updatedNoteText.value })
+  }, 300)
+
+  const handleDebouncedUpdateTitle = useDebounceFn(() => {
+    const title = updatedNoteTitle.value.trim()
+    if (!title) return
+    saveNotePatch({ title })
   }, 300)
 
   watchEffect(() => {
     if (currentNote.value) {
       updatedNoteText.value = currentNote.value.text
+      updatedNoteTitle.value = currentNote.value.title ?? ''
     }
   })
 
@@ -117,9 +158,7 @@
       createNoteStatus.value = 'pending'
       const newNote = await $fetch(`/api/notes`, {
         method: 'POST',
-        body: {
-          updatedNoteText: updatedNoteText.value
-        }
+        body: {}
       })
       notes.value = [...notes.value, {...newNote, category: 'today'}]
       currentNoteId.value = newNote.id
@@ -157,11 +196,123 @@
     }
   }
 
+  // ── Chat ──
+  const showChat = ref(false)
+
+  // Refetch notes and drop the selection if the current note vanished.
+  async function refreshNotesAndReconcile() {
+    await refreshNotes()
+    if (currentNoteId.value && !notes.value?.some(note => note.id === currentNoteId.value)) {
+      currentNoteId.value = null
+    }
+  }
+
+  const { messages, status: chatStatus, sendMessage, regenerate, error: chatError } = useChat({
+    onData(dataPart) {
+      // The assistant emits this transient signal after any create/update/delete.
+      if (dataPart.type === 'data-notes-changed') {
+        refreshNotesAndReconcile()
+      }
+    }
+  })
+
+  // Deletion confirmations the user has already resolved (confirmed or cancelled).
+  const resolvedDeletes = ref<Set<string>>(new Set())
+
+  interface PendingDeleteData {
+    token: string
+    noteId: number
+    title: string
+  }
+
+  function asPendingDelete(part: UIMessage['parts'][number]): PendingDeleteData {
+    return (part as { data: PendingDeleteData }).data
+  }
+
+  const confirmDeleteStatus = ref<AsyncDataRequestStatus>('idle')
+
+  async function handleConfirmDelete(data: PendingDeleteData) {
+    try {
+      confirmDeleteStatus.value = 'pending'
+      await $fetch('/api/notes/confirm-delete', {
+        method: 'POST',
+        body: { token: data.token }
+      })
+      resolvedDeletes.value = new Set(resolvedDeletes.value).add(data.token)
+      await refreshNotesAndReconcile()
+    } catch (err) {
+      console.error(err)
+    } finally {
+      confirmDeleteStatus.value = 'idle'
+    }
+  }
+
+  function handleCancelDelete(data: PendingDeleteData) {
+    resolvedDeletes.value = new Set(resolvedDeletes.value).add(data.token)
+  }
+
+  const lastMessageId = computed(() => messages.value.at(-1)?.id ?? null)
+
+  const lastAssistantMessageId = computed(() => {
+    for (let i = messages.value.length - 1; i >= 0; i--) {
+      const msg = messages.value[i]
+      if (msg && msg.role === 'assistant') return msg.id
+    }
+    return null
+  })
+
+  const chatSubmitDisabled = computed(() => {
+    return chatStatus.value === 'submitted' || chatStatus.value === 'streaming'
+  })
+
+  async function handleChatSubmit(msg: PromptInputMessage) {
+    if (!msg.text?.trim() && !msg.files?.length) return
+    await sendMessage({ text: msg.text, files: msg.files })
+  }
+
+  function isLastTextPart(message: UIMessage, partIndex: number) {
+    for (let i = partIndex + 1; i < message.parts.length; i++) {
+      if (message.parts[i]?.type === 'text') return false
+    }
+    return true
+  }
+
+  function isReasoningStreaming(message: UIMessage, partIndex: number) {
+    return (
+      chatStatus.value === 'streaming' &&
+      message.id === lastMessageId.value &&
+      partIndex === message.parts.length - 1
+    )
+  }
+
+  function shouldShowActions(message: UIMessage, partIndex: number) {
+    if (message.role !== 'assistant') return false
+    if (lastAssistantMessageId.value !== message.id) return false
+    return isLastTextPart(message, partIndex)
+  }
+
+  async function copyToClipboard(text: string) {
+    if (!text || typeof navigator === 'undefined' || !navigator.clipboard) return
+    try {
+      await navigator.clipboard.writeText(text)
+    } catch (err) {
+      console.error('Copy failed:', err)
+    }
+  }
+
+  function handleRegenerate() {
+    regenerate()
+  }
+
 </script>
 
 
 <template>
-  <div class="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
+  <div class="grid min-h-screen w-full" :class="showChat
+    ? 'md:grid-cols-[220px_1fr_400px] lg:grid-cols-[280px_1fr_400px]'
+    : 'md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]'
+  ">
+    <!-- Sidebar -->
     <div class="hidden border-r bg-muted/40 md:block">
       <div class="flex h-full max-h-screen overflow-auto flex-col gap-2">
         <div class="flex items-center border-b p-4">
@@ -187,7 +338,7 @@
           </div>
           <ol>
             <template v-for="note in notesGroupByCategory['today']" :key="note.id">
-              <NoteListItem :note-id="note.id" :is-active="note.id === currentNoteId" :title="note.text ?? ''" sub-title="Today" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"/>
+              <NoteListItem :note-id="note.id" :is-active="note.id === currentNoteId" :title="note.title" sub-title="Today" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"/>
             </template>
           </ol>
 
@@ -198,7 +349,7 @@
           </div>
           <ol>
             <template v-for="note in notesGroupByCategory['yesterday']" :key="note.id">
-              <NoteListItem :note-id="note.id" :is-active="note.id === currentNoteId" :title="note.text ?? ''" sub-title="Yesterday" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"/>
+              <NoteListItem :note-id="note.id" :is-active="note.id === currentNoteId" :title="note.title" sub-title="Yesterday" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"/>
             </template>
           </ol>
           <div class="flex justify-between px-4 py-2 text-sm font-semibold">
@@ -207,7 +358,7 @@
           </div>
           <ol>
             <template v-for="note in notesGroupByCategory['earlier']" :key="note.id">
-              <NoteListItem :note-id="note.id" :is-active="note.id === currentNoteId" :title="note.text ?? ''" :sub-title="new Date(note.updatedAt).toLocaleDateString()" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"/>
+              <NoteListItem :note-id="note.id" :is-active="note.id === currentNoteId" :title="note.title" :sub-title="new Date(note.updatedAt).toLocaleDateString()" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"/>
             </template>
           </ol>
         </div>
@@ -221,6 +372,8 @@
         </div>
       </div>
     </div>
+
+    <!-- Main -->
     <div class="flex flex-col">
       <header class="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
         <Sheet>
@@ -244,7 +397,7 @@
                   </div>
                   <ol>
                     <template v-for="note in notesGroupByCategory['today']" :key="note.id">
-                      <NoteListItem :note-id="note.id" :is-active="note.id === currentNoteId" :title="note.text ?? ''" sub-title="Today" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"/>
+                      <NoteListItem :note-id="note.id" :is-active="note.id === currentNoteId" :title="note.title" sub-title="Today" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"/>
                     </template>
                   </ol>
 
@@ -254,7 +407,7 @@
                   </div>
                   <ol>
                     <template v-for="note in notesGroupByCategory['yesterday']" :key="note.id">
-                    <NoteListItem :note-id="note.id" :is-active="note.id === currentNoteId" :title="note.text ?? ''" sub-title="Yesterday" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"/>
+                    <NoteListItem :note-id="note.id" :is-active="note.id === currentNoteId" :title="note.title" sub-title="Yesterday" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"/>
                     </template>
                   </ol>
                   
@@ -264,7 +417,7 @@
                   </div>
                   <ol>
                     <template v-for="note in notesGroupByCategory['earlier']" :key="note.id">
-                    <NoteListItem :note-id="note.id" :is-active="note.id === currentNoteId" :title="note.text ?? ''" :sub-title="new Date(note.updatedAt).toLocaleDateString()" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"/>
+                    <NoteListItem :note-id="note.id" :is-active="note.id === currentNoteId" :title="note.title" :sub-title="new Date(note.updatedAt).toLocaleDateString()" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"/>
                     </template>
                   </ol>
                   
@@ -280,18 +433,18 @@
             </nav>
           </SheetContent>
         </Sheet>
-        <!-- <div class="w-full flex-1">
-          <form>
-            <div class="relative">
-              <Search class="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search products..."
-                class="w-full appearance-none bg-background pl-8 shadow-none md:w-2/3 lg:w-1/3"
-              />
-            </div>
-          </form>
-        </div> -->
+
+        <!-- AI Chat toggle -->
+        <Button
+          variant="ghost"
+          size="sm"
+          class="gap-2 ml-2"
+          @click="showChat = !showChat"
+        >
+          <MessageSquare class="h-4 w-4" />
+          AI Chat
+        </Button>
+
         <DropdownMenu>
           <DropdownMenuTrigger as-child>
             <Button variant="secondary" size="icon" class="rounded-full ml-auto">
@@ -304,6 +457,8 @@
           </DropdownMenuContent>
         </DropdownMenu>
       </header>
+
+      <!-- Notes view (always visible) -->
       <main class="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6"> 
         <div class="flex flex-col flex-1 p-4 rounded-lg border border-dashed shadow-sm">
           <div v-if="!currentNote">
@@ -313,9 +468,16 @@
             </p>
           </div>
           <div v-else style="max-width: 75ch" class="flex flex-col h-full">
-            <time class="mb-8 inline-block">
+            <time class="mb-2 inline-block text-sm text-muted-foreground">
               Last Updated: {{ new Date(currentNote.updatedAt).toLocaleDateString() }}
             </time>
+            <input
+              v-model="updatedNoteTitle"
+              class="mb-6 w-full bg-transparent text-2xl font-semibold focus:outline-none"
+              placeholder="Untitled note"
+              aria-label="Note title"
+              @input="handleDebouncedUpdateTitle"
+            >
             <textarea ref="noteTextarea" v-model="updatedNoteText" class="w-full h-full focus:outline-none resize-none" @input="handleDebouncedUpdateNote" />
           </div>
         </div>
@@ -328,8 +490,138 @@
           <Trash2 class="h-4 w-4" />
           Delete Note
         </Button>
-
       </main>
+    </div>
+
+    <!-- Right panel: AI Chat -->
+    <div v-if="showChat" class="hidden border-l bg-muted/40 md:flex md:flex-col h-screen overflow-hidden">
+      <div class="flex items-center border-b px-4 py-3 shrink-0">
+        <span class="font-semibold text-sm">AI Chat</span>
+        <Button variant="ghost" size="icon-sm" class="ml-auto h-7 w-7" @click="showChat = false">
+          <XIcon class="h-4 w-4" />
+        </Button>
+      </div>
+      <div class="flex flex-col flex-1 p-3 gap-3 overflow-hidden">
+        <Conversation class="h-full">
+          <ConversationContent>
+            <ConversationEmptyState v-if="messages.length === 0 && chatStatus !== 'error'">
+              <div class="flex flex-col items-center gap-2 text-center">
+                <Bot class="h-8 w-8 text-muted-foreground/60" />
+                <h2 class="text-base font-semibold">How can I help?</h2>
+                <p class="text-xs text-muted-foreground">
+                  Ask me to manage your notes.
+                </p>
+              </div>
+            </ConversationEmptyState>
+
+            <div v-for="message in messages" :key="message.id">
+              <template
+                v-for="(part, partIndex) in message.parts"
+                :key="`${message.id}-${partIndex}`"
+              >
+                <Message
+                  v-if="part.type === 'text'"
+                  :from="message.role"
+                >
+                  <div>
+                    <MessageContent>
+                      <MessageResponse :content="part.text" />
+                    </MessageContent>
+
+                    <MessageActions v-if="shouldShowActions(message, partIndex)">
+                      <MessageAction
+                        label="Retry"
+                        tooltip="Regenerate response"
+                        @click="handleRegenerate"
+                      >
+                        <RefreshCcwIcon class="size-3" />
+                      </MessageAction>
+                      <MessageAction
+                        label="Copy"
+                        tooltip="Copy to clipboard"
+                        @click="copyToClipboard(part.text)"
+                      >
+                        <CopyIcon class="size-3" />
+                      </MessageAction>
+                    </MessageActions>
+                  </div>
+                </Message>
+
+                <Reasoning
+                  v-else-if="part.type === 'reasoning'"
+                  class="w-full"
+                  :is-streaming="isReasoningStreaming(message, partIndex)"
+                >
+                  <ReasoningTrigger />
+                  <ReasoningContent :content="part.text" />
+                </Reasoning>
+
+                <Tool v-else-if="part.type === 'dynamic-tool'" class="my-2">
+                  <ToolHeader :type="part.type" :state="part.state" :tool-name="part.toolName" />
+                  <ToolContent>
+                    <ToolInput :input="part.input" />
+                    <ToolOutput :output="part.output" :error-text="part.errorText" />
+                  </ToolContent>
+                </Tool>
+
+                <div
+                  v-else-if="part.type === 'data-pending-delete' && !resolvedDeletes.has(asPendingDelete(part).token)"
+                  class="my-2 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm"
+                >
+                  <p class="mb-2">
+                    Delete note <strong>“{{ asPendingDelete(part).title }}”</strong>? This can't be undone.
+                  </p>
+                  <div class="flex gap-2">
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      :disabled="confirmDeleteStatus === 'pending'"
+                      @click="handleConfirmDelete(asPendingDelete(part))"
+                    >
+                      Confirm
+                    </Button>
+                    <Button variant="outline" size="sm" @click="handleCancelDelete(asPendingDelete(part))">
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              </template>
+            </div>
+
+            <Loader v-if="chatStatus === 'submitted'" class="mx-auto" />
+
+            <div
+              v-if="chatStatus === 'error' && chatError"
+              class="rounded-lg border border-destructive/50 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+            >
+              {{ chatError.message || 'Something went wrong.' }}
+            </div>
+          </ConversationContent>
+
+          <ConversationScrollButton />
+        </Conversation>
+
+        <PromptInput
+          class="shrink-0"
+          @submit="handleChatSubmit"
+        >
+          <PromptInputBody>
+            <PromptInputTextarea placeholder="Ask me to manage your notes..." class="min-h-[36px] text-sm" />
+          </PromptInputBody>
+
+          <PromptInputFooter>
+            <PromptInputTools>
+              <div class="flex-1" />
+            </PromptInputTools>
+
+            <PromptInputSubmit
+              :disabled="chatSubmitDisabled"
+              :status="chatStatus as ChatStatus"
+              size="icon-sm"
+            />
+          </PromptInputFooter>
+        </PromptInput>
+      </div>
     </div>
   </div>
 </template>
