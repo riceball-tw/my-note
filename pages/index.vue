@@ -1,10 +1,10 @@
 <script setup lang="ts">
   import { useDebounceFn } from '@vueuse/core';
-  import { Plus, Trash2, CircleUser, Menu, ScrollText, Loader2, MessageSquare } from 'lucide-vue-next'
+  import { Plus, Trash2, CircleUser, Menu, ScrollText, Loader2, MessageSquare, Bot } from 'lucide-vue-next'
   import type { AsyncDataRequestStatus } from "#app";
   import { useChat } from '@ai-sdk/vue'
   import { CopyIcon, RefreshCcwIcon, XIcon } from '@lucide/vue'
-  import type { ChatStatus, SourceUrlUIPart, UIMessage } from 'ai'
+  import type { ChatStatus, UIMessage } from 'ai'
   import type { PromptInputMessage } from '@/components/ai-elements/prompt-input'
 
   import {
@@ -35,18 +35,19 @@
     ReasoningTrigger,
   } from '@/components/ai-elements/reasoning'
   import {
-    Source,
-    Sources,
-    SourcesContent,
-    SourcesTrigger,
-  } from '@/components/ai-elements/sources'
+    Tool,
+    ToolContent,
+    ToolHeader,
+    ToolInput,
+    ToolOutput,
+  } from '@/components/ai-elements/tool'
 
   definePageMeta({
     middleware: ['auth']
   })
 
   // ── Notes ──
-  const { data: notes, status: notesStatus } = useLazyFetch('/api/notes', {
+  const { data: notes, status: notesStatus, refresh: refreshNotes } = useLazyFetch('/api/notes', {
     transform: (res) => {
       return res?.map(note => {
         const noteUpdatedString = new Date(note.updatedAt).toDateString();
@@ -62,6 +63,7 @@
   })
   const currentNoteId = ref<null | number>(null)
   const updatedNoteText = ref<string | null>('')
+  const updatedNoteTitle = ref<string>('')
   const currentNote = computed(() => {
     if (!currentNoteId.value) return null
     return notes?.value?.find(note => note.id === currentNoteId.value)
@@ -109,40 +111,40 @@
     currentNoteId.value = id
   }
 
-  async function updateNoteText() {
+  async function saveNotePatch(patch: { title?: string, text?: string | null }) {
+    if (!currentNoteId.value) return
     try {
       await $fetch(`/api/notes/${currentNoteId.value}`, {
         method: 'PATCH',
-        body: {
-          updatedNoteText: updatedNoteText.value
-        }
+        body: patch
       })
+      mergeIntoNotes(currentNoteId.value, patch)
     } catch(err) {
       console.error(err)
     }
   }
 
-  function updateCurrentNoteTextToNotes() {
+  function mergeIntoNotes(id: number, patch: { title?: string, text?: string | null }) {
     if (!notes.value) return
-    notes.value = notes.value.map(note => {
-      if (note.id === currentNoteId.value) {
-        return {
-          ...note,
-          text: updatedNoteText.value
-        }
-      }
-      return note
-    })
+    notes.value = notes.value.map(note =>
+      note.id === id ? { ...note, ...patch } : note
+    )
   }
 
-  const handleDebouncedUpdateNote = useDebounceFn(async () => {
-    await updateNoteText()
-    updateCurrentNoteTextToNotes()
+  const handleDebouncedUpdateNote = useDebounceFn(() => {
+    saveNotePatch({ text: updatedNoteText.value })
+  }, 300)
+
+  const handleDebouncedUpdateTitle = useDebounceFn(() => {
+    const title = updatedNoteTitle.value.trim()
+    if (!title) return
+    saveNotePatch({ title })
   }, 300)
 
   watchEffect(() => {
     if (currentNote.value) {
       updatedNoteText.value = currentNote.value.text
+      updatedNoteTitle.value = currentNote.value.title ?? ''
     }
   })
 
@@ -156,9 +158,7 @@
       createNoteStatus.value = 'pending'
       const newNote = await $fetch(`/api/notes`, {
         method: 'POST',
-        body: {
-          updatedNoteText: updatedNoteText.value
-        }
+        body: {}
       })
       notes.value = [...notes.value, {...newNote, category: 'today'}]
       currentNoteId.value = newNote.id
@@ -199,7 +199,57 @@
   // ── Chat ──
   const showChat = ref(false)
 
-  const { messages, status: chatStatus, sendMessage, regenerate, error: chatError } = useChat()
+  // Refetch notes and drop the selection if the current note vanished.
+  async function refreshNotesAndReconcile() {
+    await refreshNotes()
+    if (currentNoteId.value && !notes.value?.some(note => note.id === currentNoteId.value)) {
+      currentNoteId.value = null
+    }
+  }
+
+  const { messages, status: chatStatus, sendMessage, regenerate, error: chatError } = useChat({
+    onData(dataPart) {
+      // The assistant emits this transient signal after any create/update/delete.
+      if (dataPart.type === 'data-notes-changed') {
+        refreshNotesAndReconcile()
+      }
+    }
+  })
+
+  // Deletion confirmations the user has already resolved (confirmed or cancelled).
+  const resolvedDeletes = ref<Set<string>>(new Set())
+
+  interface PendingDeleteData {
+    token: string
+    noteId: number
+    title: string
+  }
+
+  function asPendingDelete(part: UIMessage['parts'][number]): PendingDeleteData {
+    return (part as { data: PendingDeleteData }).data
+  }
+
+  const confirmDeleteStatus = ref<AsyncDataRequestStatus>('idle')
+
+  async function handleConfirmDelete(data: PendingDeleteData) {
+    try {
+      confirmDeleteStatus.value = 'pending'
+      await $fetch('/api/notes/confirm-delete', {
+        method: 'POST',
+        body: { token: data.token }
+      })
+      resolvedDeletes.value = new Set(resolvedDeletes.value).add(data.token)
+      await refreshNotesAndReconcile()
+    } catch (err) {
+      console.error(err)
+    } finally {
+      confirmDeleteStatus.value = 'idle'
+    }
+  }
+
+  function handleCancelDelete(data: PendingDeleteData) {
+    resolvedDeletes.value = new Set(resolvedDeletes.value).add(data.token)
+  }
 
   const lastMessageId = computed(() => messages.value.at(-1)?.id ?? null)
 
@@ -218,12 +268,6 @@
   async function handleChatSubmit(msg: PromptInputMessage) {
     if (!msg.text?.trim() && !msg.files?.length) return
     await sendMessage({ text: msg.text, files: msg.files })
-  }
-
-  function getSourceUrlParts(message: UIMessage) {
-    return message.parts.filter((part): part is SourceUrlUIPart =>
-      part.type === 'source-url'
-    )
   }
 
   function isLastTextPart(message: UIMessage, partIndex: number) {
@@ -294,7 +338,7 @@
           </div>
           <ol>
             <template v-for="note in notesGroupByCategory['today']" :key="note.id">
-              <NoteListItem :note-id="note.id" :is-active="note.id === currentNoteId" :title="note.text ?? ''" sub-title="Today" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"/>
+              <NoteListItem :note-id="note.id" :is-active="note.id === currentNoteId" :title="note.title" sub-title="Today" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"/>
             </template>
           </ol>
 
@@ -305,7 +349,7 @@
           </div>
           <ol>
             <template v-for="note in notesGroupByCategory['yesterday']" :key="note.id">
-              <NoteListItem :note-id="note.id" :is-active="note.id === currentNoteId" :title="note.text ?? ''" sub-title="Yesterday" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"/>
+              <NoteListItem :note-id="note.id" :is-active="note.id === currentNoteId" :title="note.title" sub-title="Yesterday" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"/>
             </template>
           </ol>
           <div class="flex justify-between px-4 py-2 text-sm font-semibold">
@@ -314,7 +358,7 @@
           </div>
           <ol>
             <template v-for="note in notesGroupByCategory['earlier']" :key="note.id">
-              <NoteListItem :note-id="note.id" :is-active="note.id === currentNoteId" :title="note.text ?? ''" :sub-title="new Date(note.updatedAt).toLocaleDateString()" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"/>
+              <NoteListItem :note-id="note.id" :is-active="note.id === currentNoteId" :title="note.title" :sub-title="new Date(note.updatedAt).toLocaleDateString()" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"/>
             </template>
           </ol>
         </div>
@@ -353,7 +397,7 @@
                   </div>
                   <ol>
                     <template v-for="note in notesGroupByCategory['today']" :key="note.id">
-                      <NoteListItem :note-id="note.id" :is-active="note.id === currentNoteId" :title="note.text ?? ''" sub-title="Today" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"/>
+                      <NoteListItem :note-id="note.id" :is-active="note.id === currentNoteId" :title="note.title" sub-title="Today" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"/>
                     </template>
                   </ol>
 
@@ -363,7 +407,7 @@
                   </div>
                   <ol>
                     <template v-for="note in notesGroupByCategory['yesterday']" :key="note.id">
-                    <NoteListItem :note-id="note.id" :is-active="note.id === currentNoteId" :title="note.text ?? ''" sub-title="Yesterday" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"/>
+                    <NoteListItem :note-id="note.id" :is-active="note.id === currentNoteId" :title="note.title" sub-title="Yesterday" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"/>
                     </template>
                   </ol>
                   
@@ -373,7 +417,7 @@
                   </div>
                   <ol>
                     <template v-for="note in notesGroupByCategory['earlier']" :key="note.id">
-                    <NoteListItem :note-id="note.id" :is-active="note.id === currentNoteId" :title="note.text ?? ''" :sub-title="new Date(note.updatedAt).toLocaleDateString()" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"/>
+                    <NoteListItem :note-id="note.id" :is-active="note.id === currentNoteId" :title="note.title" :sub-title="new Date(note.updatedAt).toLocaleDateString()" @change-current-note-id="(id) => handleChangeCurrentNoteId(id)"/>
                     </template>
                   </ol>
                   
@@ -424,9 +468,16 @@
             </p>
           </div>
           <div v-else style="max-width: 75ch" class="flex flex-col h-full">
-            <time class="mb-8 inline-block">
+            <time class="mb-2 inline-block text-sm text-muted-foreground">
               Last Updated: {{ new Date(currentNote.updatedAt).toLocaleDateString() }}
             </time>
+            <input
+              v-model="updatedNoteTitle"
+              class="mb-6 w-full bg-transparent text-2xl font-semibold focus:outline-none"
+              placeholder="Untitled note"
+              aria-label="Note title"
+              @input="handleDebouncedUpdateTitle"
+            >
             <textarea ref="noteTextarea" v-model="updatedNoteText" class="w-full h-full focus:outline-none resize-none" @input="handleDebouncedUpdateNote" />
           </div>
         </div>
@@ -504,6 +555,36 @@
                   <ReasoningTrigger />
                   <ReasoningContent :content="part.text" />
                 </Reasoning>
+
+                <Tool v-else-if="part.type === 'dynamic-tool'" class="my-2">
+                  <ToolHeader :type="part.type" :state="part.state" :tool-name="part.toolName" />
+                  <ToolContent>
+                    <ToolInput :input="part.input" />
+                    <ToolOutput :output="part.output" :error-text="part.errorText" />
+                  </ToolContent>
+                </Tool>
+
+                <div
+                  v-else-if="part.type === 'data-pending-delete' && !resolvedDeletes.has(asPendingDelete(part).token)"
+                  class="my-2 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm"
+                >
+                  <p class="mb-2">
+                    Delete note <strong>“{{ asPendingDelete(part).title }}”</strong>? This can't be undone.
+                  </p>
+                  <div class="flex gap-2">
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      :disabled="confirmDeleteStatus === 'pending'"
+                      @click="handleConfirmDelete(asPendingDelete(part))"
+                    >
+                      Confirm
+                    </Button>
+                    <Button variant="outline" size="sm" @click="handleCancelDelete(asPendingDelete(part))">
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
               </template>
             </div>
 
