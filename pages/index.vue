@@ -1,12 +1,51 @@
 <script setup lang="ts">
   import { useDebounceFn } from '@vueuse/core';
-  import { Plus, Trash2, CircleUser, Menu, ScrollText, Loader2 } from 'lucide-vue-next'
+  import { Plus, Trash2, CircleUser, Menu, ScrollText, Loader2, MessageSquare } from 'lucide-vue-next'
   import type { AsyncDataRequestStatus } from "#app";
+  import { useChat } from '@ai-sdk/vue'
+  import { CopyIcon, RefreshCcwIcon, XIcon } from '@lucide/vue'
+  import type { ChatStatus, SourceUrlUIPart, UIMessage } from 'ai'
+  import type { PromptInputMessage } from '@/components/ai-elements/prompt-input'
+
+  import {
+    Conversation,
+    ConversationContent,
+    ConversationScrollButton,
+    ConversationEmptyState,
+  } from '@/components/ai-elements/conversation'
+  import {
+    Message,
+    MessageAction,
+    MessageActions,
+    MessageContent,
+    MessageResponse,
+  } from '@/components/ai-elements/message'
+  import {
+    PromptInput,
+    PromptInputBody,
+    PromptInputFooter,
+    PromptInputTextarea,
+    PromptInputSubmit,
+    PromptInputTools,
+  } from '@/components/ai-elements/prompt-input'
+  import { Loader } from '@/components/ai-elements/loader'
+  import {
+    Reasoning,
+    ReasoningContent,
+    ReasoningTrigger,
+  } from '@/components/ai-elements/reasoning'
+  import {
+    Source,
+    Sources,
+    SourcesContent,
+    SourcesTrigger,
+  } from '@/components/ai-elements/sources'
 
   definePageMeta({
     middleware: ['auth']
   })
 
+  // ── Notes ──
   const { data: notes, status: notesStatus } = useLazyFetch('/api/notes', {
     transform: (res) => {
       return res?.map(note => {
@@ -157,11 +196,79 @@
     }
   }
 
+  // ── Chat ──
+  const showChat = ref(false)
+
+  const { messages, status: chatStatus, sendMessage, regenerate, error: chatError } = useChat()
+
+  const lastMessageId = computed(() => messages.value.at(-1)?.id ?? null)
+
+  const lastAssistantMessageId = computed(() => {
+    for (let i = messages.value.length - 1; i >= 0; i--) {
+      const msg = messages.value[i]
+      if (msg && msg.role === 'assistant') return msg.id
+    }
+    return null
+  })
+
+  const chatSubmitDisabled = computed(() => {
+    return chatStatus.value === 'submitted' || chatStatus.value === 'streaming'
+  })
+
+  async function handleChatSubmit(msg: PromptInputMessage) {
+    if (!msg.text?.trim() && !msg.files?.length) return
+    await sendMessage({ text: msg.text, files: msg.files })
+  }
+
+  function getSourceUrlParts(message: UIMessage) {
+    return message.parts.filter((part): part is SourceUrlUIPart =>
+      part.type === 'source-url'
+    )
+  }
+
+  function isLastTextPart(message: UIMessage, partIndex: number) {
+    for (let i = partIndex + 1; i < message.parts.length; i++) {
+      if (message.parts[i]?.type === 'text') return false
+    }
+    return true
+  }
+
+  function isReasoningStreaming(message: UIMessage, partIndex: number) {
+    return (
+      chatStatus.value === 'streaming' &&
+      message.id === lastMessageId.value &&
+      partIndex === message.parts.length - 1
+    )
+  }
+
+  function shouldShowActions(message: UIMessage, partIndex: number) {
+    if (message.role !== 'assistant') return false
+    if (lastAssistantMessageId.value !== message.id) return false
+    return isLastTextPart(message, partIndex)
+  }
+
+  async function copyToClipboard(text: string) {
+    if (!text || typeof navigator === 'undefined' || !navigator.clipboard) return
+    try {
+      await navigator.clipboard.writeText(text)
+    } catch (err) {
+      console.error('Copy failed:', err)
+    }
+  }
+
+  function handleRegenerate() {
+    regenerate()
+  }
+
 </script>
 
 
 <template>
-  <div class="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
+  <div class="grid min-h-screen w-full" :class="showChat
+    ? 'md:grid-cols-[220px_1fr_400px] lg:grid-cols-[280px_1fr_400px]'
+    : 'md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]'
+  ">
+    <!-- Sidebar -->
     <div class="hidden border-r bg-muted/40 md:block">
       <div class="flex h-full max-h-screen overflow-auto flex-col gap-2">
         <div class="flex items-center border-b p-4">
@@ -221,6 +328,8 @@
         </div>
       </div>
     </div>
+
+    <!-- Main -->
     <div class="flex flex-col">
       <header class="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
         <Sheet>
@@ -280,18 +389,18 @@
             </nav>
           </SheetContent>
         </Sheet>
-        <!-- <div class="w-full flex-1">
-          <form>
-            <div class="relative">
-              <Search class="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search products..."
-                class="w-full appearance-none bg-background pl-8 shadow-none md:w-2/3 lg:w-1/3"
-              />
-            </div>
-          </form>
-        </div> -->
+
+        <!-- AI Chat toggle -->
+        <Button
+          variant="ghost"
+          size="sm"
+          class="gap-2 ml-2"
+          @click="showChat = !showChat"
+        >
+          <MessageSquare class="h-4 w-4" />
+          AI Chat
+        </Button>
+
         <DropdownMenu>
           <DropdownMenuTrigger as-child>
             <Button variant="secondary" size="icon" class="rounded-full ml-auto">
@@ -304,6 +413,8 @@
           </DropdownMenuContent>
         </DropdownMenu>
       </header>
+
+      <!-- Notes view (always visible) -->
       <main class="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6"> 
         <div class="flex flex-col flex-1 p-4 rounded-lg border border-dashed shadow-sm">
           <div v-if="!currentNote">
@@ -328,8 +439,108 @@
           <Trash2 class="h-4 w-4" />
           Delete Note
         </Button>
-
       </main>
+    </div>
+
+    <!-- Right panel: AI Chat -->
+    <div v-if="showChat" class="hidden border-l bg-muted/40 md:flex md:flex-col h-screen overflow-hidden">
+      <div class="flex items-center border-b px-4 py-3 shrink-0">
+        <span class="font-semibold text-sm">AI Chat</span>
+        <Button variant="ghost" size="icon-sm" class="ml-auto h-7 w-7" @click="showChat = false">
+          <XIcon class="h-4 w-4" />
+        </Button>
+      </div>
+      <div class="flex flex-col flex-1 p-3 gap-3 overflow-hidden">
+        <Conversation class="h-full">
+          <ConversationContent>
+            <ConversationEmptyState v-if="messages.length === 0 && chatStatus !== 'error'">
+              <div class="flex flex-col items-center gap-2 text-center">
+                <Bot class="h-8 w-8 text-muted-foreground/60" />
+                <h2 class="text-base font-semibold">How can I help?</h2>
+                <p class="text-xs text-muted-foreground">
+                  Ask me to manage your notes.
+                </p>
+              </div>
+            </ConversationEmptyState>
+
+            <div v-for="message in messages" :key="message.id">
+              <template
+                v-for="(part, partIndex) in message.parts"
+                :key="`${message.id}-${partIndex}`"
+              >
+                <Message
+                  v-if="part.type === 'text'"
+                  :from="message.role"
+                >
+                  <div>
+                    <MessageContent>
+                      <MessageResponse :content="part.text" />
+                    </MessageContent>
+
+                    <MessageActions v-if="shouldShowActions(message, partIndex)">
+                      <MessageAction
+                        label="Retry"
+                        tooltip="Regenerate response"
+                        @click="handleRegenerate"
+                      >
+                        <RefreshCcwIcon class="size-3" />
+                      </MessageAction>
+                      <MessageAction
+                        label="Copy"
+                        tooltip="Copy to clipboard"
+                        @click="copyToClipboard(part.text)"
+                      >
+                        <CopyIcon class="size-3" />
+                      </MessageAction>
+                    </MessageActions>
+                  </div>
+                </Message>
+
+                <Reasoning
+                  v-else-if="part.type === 'reasoning'"
+                  class="w-full"
+                  :is-streaming="isReasoningStreaming(message, partIndex)"
+                >
+                  <ReasoningTrigger />
+                  <ReasoningContent :content="part.text" />
+                </Reasoning>
+              </template>
+            </div>
+
+            <Loader v-if="chatStatus === 'submitted'" class="mx-auto" />
+
+            <div
+              v-if="chatStatus === 'error' && chatError"
+              class="rounded-lg border border-destructive/50 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+            >
+              {{ chatError.message || 'Something went wrong.' }}
+            </div>
+          </ConversationContent>
+
+          <ConversationScrollButton />
+        </Conversation>
+
+        <PromptInput
+          class="shrink-0"
+          @submit="handleChatSubmit"
+        >
+          <PromptInputBody>
+            <PromptInputTextarea placeholder="Ask me to manage your notes..." class="min-h-[36px] text-sm" />
+          </PromptInputBody>
+
+          <PromptInputFooter>
+            <PromptInputTools>
+              <div class="flex-1" />
+            </PromptInputTools>
+
+            <PromptInputSubmit
+              :disabled="chatSubmitDisabled"
+              :status="chatStatus as ChatStatus"
+              size="icon-sm"
+            />
+          </PromptInputFooter>
+        </PromptInput>
+      </div>
     </div>
   </div>
 </template>
